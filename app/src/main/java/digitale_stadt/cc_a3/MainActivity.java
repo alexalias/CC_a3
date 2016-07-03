@@ -23,6 +23,7 @@ import android.widget.ToggleButton;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -90,22 +91,6 @@ public class MainActivity extends AppCompatActivity{
         pgGPSWait = new ProgressDialog(this, ProgressDialog.STYLE_SPINNER);
 
         setTitleBackgroundColor();
-
-//        DBHelper Test
-//        DBHelper dbHelper = new DBHelper((Context)this);
-//        Tour t = new Tour("111");
-//        Position pos = new Position(t.getTourID(), 123l, 1, 5.0, 5.0, 5.0);
-//        t.AddWayPoint(pos);
-//        for (Position p : t.GetWayPoints()) {
-//            dbHelper.insertPosition(p);
-//        }
-//        Log.i("ABC", "##############################################");
-//        Log.i("TourID", t.getTourID());
-//        Log.i("Einträge:", String.format("%d", dbHelper.selectAllPositions().size()));
-//        Log.i("ungesendet:", String.format("%d", dbHelper.selectAllPositionsNotSent().size()));
-//        dbHelper.updatePosition(t.getTourID(), (int)t.GetWayPoints().get(0).getId());
-//        Log.i("ungesendet:", String.format("%d", dbHelper.selectAllPositionsNotSent().size()));
-//        Log.i("ABC", ".############################################.");
     }
 
     @Override
@@ -114,10 +99,41 @@ public class MainActivity extends AppCompatActivity{
         gps = new GPSTracker(this){ };
 
         SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-        RequestManager.getInstance().doRequest().Login(
-                false,
-                sharedPrefs.getString("username", ""),
-                sharedPrefs.getString("userpassword", ""));
+        //login if auth_token is not set
+//        if (sharedPrefs.getString("auth_token", "").equals(""))
+//        {
+//            RequestManager.getInstance().doRequest().Login(
+//                    false,
+//                    sharedPrefs.getString("username", ""),
+//                    sharedPrefs.getString("userpassword", ""));
+//        }
+        // Nicht versendete Touren aus der Datenbank versenden
+        Tour tour;
+        String tourID;
+        int counter;
+        ArrayList<Position> list = DBManager.getInstance().doRequest().selectAllPositionsNotSent();
+
+        //creates a tour for each tourID in the list and sends it to the server
+        while (!list.isEmpty())
+        {
+            //initialize tour with the tourID of the first Position in the list
+            tourID = list.get(0).getTourID();
+            tour = new Tour(tourID, new ArrayList<Position>());
+
+            // move all elements with same tourID from the list to the tour
+            counter = 0;
+            while (counter < list.size()) {
+                // moves an element to the tour or increases the counter
+                if (list.get(counter).getTourID().equals(tourID))
+                    tour.AddWayPoint(list.remove(0));
+                else
+                    counter++;
+            }
+            LogSystemData("vor  test: ");
+            Log.i("Tour from DB to send", tour.toJSON().toString());
+            DBManager.getInstance().doRequest().updatePositionSentStatus(tourID, tour.GetWayPoints().get(0).getId(), 1);
+            LogSystemData("nach test: ");
+        }
     }
 
     //Eine Sorte Clicklistener für unser start/stop Button

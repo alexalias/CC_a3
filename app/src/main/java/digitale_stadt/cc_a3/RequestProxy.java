@@ -40,8 +40,7 @@ public class RequestProxy {
     final String data_url = "https://cychh.informatik.uni-hamburg.de:443/log_coordinates.php";
 
     final String server_login_failed = "wrong credentials";
-    final String server_register_success_pre = "Registration successfull: Account ";
-    final String server_register_success_post = " has been created succesfully.";
+    final String server_register_success = "succesfully";
     final String server_register_anonymous_failed = "wrong credentials";
     final String server_data_transmission_token_not_valid = "auth_token not set";
 
@@ -98,8 +97,11 @@ public class RequestProxy {
                                         else
                                             counter++;
                                     }
-
-                                    RequestManager.getInstance().doRequest().SendTourData(token, tour);
+                                    ((MainActivity)mContext).LogSystemData("vor  test: ");
+                                    Log.i("Tour from DB to send", tour.toJSON().toString());
+                                    DBManager.getInstance().doRequest().updatePositionSentStatus(tourID, tour.GetWayPoints().get(0).getId(), 1);
+                                    ((MainActivity)mContext).LogSystemData("nach test: ");
+                                    //RequestManager.getInstance().doRequest().SendTourData(token, tour);
                                 }
                             }
                             catch (Exception e) {}
@@ -155,7 +157,7 @@ public class RequestProxy {
                     @Override
                     public void onResponse(String response) {
                         // check if register was successfull
-                        if (response.startsWith(server_register_success_pre)) {
+                        if (response.contains(server_register_success)) {
                             Log.i("Register Response", "Registration successfull: " + response);
                             // save data
                             sharedPrefs.edit().putString("username", username).commit();
@@ -307,6 +309,6 @@ public class RequestProxy {
 
         //set timeout to 1000ms and retries to 1
         postRequest.setRetryPolicy(defaultRetryPolicy);
-        mRequestQueue.add(postRequest);
+        //mRequestQueue.add(postRequest);
     }
 }
